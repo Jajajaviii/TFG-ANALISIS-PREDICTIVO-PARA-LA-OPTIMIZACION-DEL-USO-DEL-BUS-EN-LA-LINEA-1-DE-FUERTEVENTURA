@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 APP_DIR = Path(__file__).resolve().parent
-DATA_FILE = APP_DIR / "TFG_L1_dataset_definitivo.csv.gz"
+DATA_FILE = APP_DIR / "TFG_L1_dataset_definitivo.csv"
 
 
 def _has_streamlit_context():
@@ -464,7 +464,7 @@ if pagina == "Red y geografía":
     fig_map.update_layout(margin=dict(l=0, r=0, t=10, b=0),
                           legend=dict(title="Zona funcional"))
     fig_map = apply_plotly_theme(fig_map)
-    st.plotly_chart(fig_map, width="stretch")
+    st.plotly_chart(fig_map, use_container_width=True)
 
     col_a, col_b = st.columns(2)
     with col_a:
@@ -484,7 +484,7 @@ if pagina == "Red y geografía":
         fig_z.update_xaxes(gridcolor=_CGRID)
         fig_z.update_yaxes(gridcolor=_CGRID)
         fig_z = apply_plotly_theme(fig_z)
-        st.plotly_chart(fig_z, width="stretch")
+        st.plotly_chart(fig_z, use_container_width=True)
 
     with col_b:
         st.markdown("### Nodos clave del sistema")
@@ -502,7 +502,7 @@ if pagina == "Red y geografía":
                                               x=0.5, y=0.5, font=dict(size=14, color=COLORS["primary"]),
                                               showarrow=False)])
         fig_k = apply_plotly_theme(fig_k)
-        st.plotly_chart(fig_k, width="stretch")
+        st.plotly_chart(fig_k, use_container_width=True)
 
 
 # ---------------- SECCIÓN 2: DEMANDA ----------------
@@ -532,7 +532,7 @@ elif pagina == "Demanda":
     fig_ts.update_xaxes(gridcolor=_CGRID)
     fig_ts.update_yaxes(gridcolor=_CGRID)
     fig_ts = apply_plotly_theme(fig_ts)
-    st.plotly_chart(fig_ts, width="stretch")
+    st.plotly_chart(fig_ts, use_container_width=True)
 
     col_a, col_b = st.columns(2)
     with col_a:
@@ -550,7 +550,7 @@ elif pagina == "Demanda":
         fig_box.update_xaxes(gridcolor=_CGRID)
         fig_box.update_yaxes(gridcolor=_CGRID)
         fig_box = apply_plotly_theme(fig_box)
-        st.plotly_chart(fig_box, width="stretch")
+        st.plotly_chart(fig_box, use_container_width=True)
 
     with col_b:
         st.markdown("### Tráfico aeroportuario diario")
@@ -568,7 +568,7 @@ elif pagina == "Demanda":
         fig_air.update_xaxes(gridcolor=_CGRID)
         fig_air.update_yaxes(gridcolor=_CGRID)
         fig_air = apply_plotly_theme(fig_air)
-        st.plotly_chart(fig_air, width="stretch")
+        st.plotly_chart(fig_air, use_container_width=True)
 
 
 # ---------------- SECCIÓN 3: OPERACIÓN ----------------
@@ -598,7 +598,7 @@ elif pagina == "Operación":
     fig_prof.update_xaxes(gridcolor=_CGRID)
     fig_prof.update_yaxes(gridcolor=_CGRID)
     fig_prof = apply_plotly_theme(fig_prof)
-    st.plotly_chart(fig_prof, width="stretch")
+    st.plotly_chart(fig_prof, use_container_width=True)
 
     col_a, col_b = st.columns(2)
     with col_a:
@@ -625,7 +625,7 @@ elif pagina == "Operación":
         fig_oc.update_layout(height=380, barmode="group",
                              yaxis_title="Pasajeros")
         fig_oc = apply_plotly_theme(fig_oc)
-        st.plotly_chart(fig_oc, width="stretch")
+        st.plotly_chart(fig_oc, use_container_width=True)
 
     with col_b:
         st.markdown("### Saturación y demanda no servida")
@@ -645,7 +645,7 @@ elif pagina == "Operación":
         fig_sat.update_layout(height=380, showlegend=True,
                               yaxis_title="% Expediciones saturadas")
         fig_sat = apply_plotly_theme(fig_sat)
-        st.plotly_chart(fig_sat, width="stretch")
+        st.plotly_chart(fig_sat, use_container_width=True)
 
 
 # ---------------- SECCIÓN 4: SENSIBILIDAD ----------------
@@ -683,7 +683,7 @@ elif pagina == "Sensibilidad":
                            )
     fig_sens.update_xaxes(gridcolor=_CGRID)
     fig_sens = apply_plotly_theme(fig_sens)
-    st.plotly_chart(fig_sens, width="stretch")
+    st.plotly_chart(fig_sens, use_container_width=True)
 
     st.info("**Lectura:** El aumento de capacidad a 70 pasajeros es la medida más eficaz, "
             "reduciendo en más del 80% la demanda no servida respecto al escenario base. "
@@ -714,7 +714,7 @@ elif pagina == "Modelos predictivos":
                               yaxis_title="MAE (escala D_index)",
                               title="MAE en test 2025")
         fig_mae = apply_plotly_theme(fig_mae)
-        st.plotly_chart(fig_mae, width="stretch")
+        st.plotly_chart(fig_mae, use_container_width=True)
 
     with col_b:
         fig_rmse = px.bar(modelos_df, x="Modelo", y="RMSE", text="RMSE",
@@ -726,14 +726,14 @@ elif pagina == "Modelos predictivos":
                                yaxis_title="RMSE (escala D_index)",
                                title="RMSE en test 2025")
         fig_rmse = apply_plotly_theme(fig_rmse)
-        st.plotly_chart(fig_rmse, width="stretch")
+        st.plotly_chart(fig_rmse, use_container_width=True)
 
     st.markdown("### Tabla resumen de métricas")
     st.dataframe(
         modelos_df.style.format({"MAE": "{:.4f}", "RMSE": "{:.4f}", "R²": "{:.4f}"})
                         .background_gradient(subset=["MAE", "RMSE"], cmap="RdYlGn_r")
                         .background_gradient(subset=["R²"], cmap="RdYlGn"),
-        width="stretch", hide_index=True,
+        use_container_width=True, hide_index=True,
     )
 
     st.warning("**Nota interpretativa:** El alto rendimiento de los modelos lineales "
