@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 APP_DIR = Path(__file__).resolve().parent
-DATA_FILE = APP_DIR / "TFG_L1_dataset_definitivo.csv"
+DATA_FILE = APP_DIR / "TFG_L1_dataset_definitivo.csv.gz"
 
 
 def _has_streamlit_context():
