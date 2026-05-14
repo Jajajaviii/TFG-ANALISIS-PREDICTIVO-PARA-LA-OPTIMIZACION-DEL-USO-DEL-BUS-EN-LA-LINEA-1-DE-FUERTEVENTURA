@@ -278,7 +278,7 @@ def build_metrics(df, capacity, alpha_bajo, alpha_medio, alpha_alto):
     ALPHA = {"bajo": alpha_bajo, "medio": alpha_medio, "alto": alpha_alto}
     BETA_DAY = {"laborable": 1.00, "sabado": 0.85, "domingo_festivo": 0.80}
 
-    # Demanda diaria por escenario
+    # Demanda diaria — igual que antes
     df_daily = (df.drop_duplicates(subset="fecha")
                   [["fecha", "day_type", "airport_pax", "max_impact_factor",
                     "has_event", "month", "weekday"]]
@@ -289,45 +289,52 @@ def build_metrics(df, capacity, alpha_bajo, alpha_medio, alpha_alto):
         df_daily[f"D_{s}"] = (df_daily["airport_pax"] * alpha *
                               df_daily["beta"] * df_daily["gamma"])
 
-    # D_index normalizado [0,1]
     proxy_raw = df_daily["D_medio"]
     proxy_min, proxy_max = proxy_raw.min(), proxy_raw.max()
-    proxy_rng = max(proxy_max - proxy_min, 1e-9)
-    df_daily["D_index"] = ((proxy_raw - proxy_min) / proxy_rng).clip(0, 1)
+    df_daily["D_index"] = ((proxy_raw - proxy_min) / max(proxy_max - proxy_min, 1e-9)).clip(0, 1)
     df_daily["mes"] = df_daily["fecha"].dt.to_period("M").astype(str)
 
-    # Simulación operativa
-    service_df = df[df["is_service_segment"]].copy()
-    service_df["service_seg_order"] = (service_df.sort_values(["fecha", "service_id", "segment_order"])
-                                       .groupby(["fecha", "service_id"]).cumcount() + 1)
+    # Preparar service_df una sola vez con columnas mínimas
+    cols_needed = ["fecha", "service_id", "segment_order", "direction",
+                   "from_stop", "from_node_weight", "is_service_segment"]
+    cols_needed = [c for c in cols_needed if c in df.columns]
+    
+    service_df = df[df["is_service_segment"]][cols_needed].copy()
+    service_df["service_seg_order"] = (
+        service_df.sort_values(["fecha", "service_id", "segment_order"])
+        .groupby(["fecha", "service_id"]).cumcount() + 1
+    )
     node_weights = service_df.groupby("from_stop")["from_node_weight"].first().fillna(1.0)
     service_df["w_norm"] = service_df["from_stop"].map(node_weights / node_weights.sum())
     n_services = service_df.groupby("fecha")["service_id"].nunique().mean()
 
+    # Calcular KPIs por escenario SIN guardar los dataframes completos
+    kpi_seg, kpi_exp = {}, {}
     sim_runs = {}
-    for scen in ALPHA:
+
+    for scen, alpha in ALPHA.items():
         daily_d = df_daily.set_index("fecha")[f"D_{scen}"].to_dict()
         s = service_df.copy()
         s["d_dia"] = s["fecha"].map(daily_d)
         s["boardings"] = s["d_dia"] * s["w_norm"] / max(n_services, 1)
         s = s.sort_values(["fecha", "service_id", "segment_order"])
-        s["occ"] = (s.groupby(["fecha", "service_id"])["boardings"]
-                      .transform(lambda x: x.cumsum() - x.cumsum().shift(2).fillna(0) * 0.25))
-        s["occ_potential"] = s["occ"]
-        s["occ"] = s["occ"].clip(upper=capacity)
-        sim_runs[scen] = s
 
-    # KPIs
-    kpi_seg, kpi_exp = {}, {}
-    for scen, s in sim_runs.items():
+        # Cumsum eficiente sin lambda doble
+        cs = s.groupby(["fecha", "service_id"])["boardings"].cumsum()
+        cs_shift = s.groupby(["fecha", "service_id"])["boardings"].cumsum().shift(2).fillna(0)
+        s["occ_potential"] = cs - cs_shift * 0.25
+        s["occ"] = s["occ_potential"].clip(upper=capacity)
+
         kpi_seg[scen] = {"occ_mean": s["occ"].mean(), "occ_p95": s["occ"].quantile(0.95)}
         exp_peak = s.groupby(["fecha", "service_id"])["occ_potential"].max()
         no_serv  = (s["occ_potential"] - s["occ"]).clip(lower=0).sum()
-        kpi_exp[scen] = {"sat_pct": (exp_peak > capacity).mean() * 100,
-                         "no_servida": no_serv}
+        kpi_exp[scen] = {"sat_pct": (exp_peak > capacity).mean() * 100, "no_servida": no_serv}
+
+        sim_runs[scen] = s[["fecha", "service_id", "service_seg_order",
+                             "direction", "from_stop", "occ", "occ_potential"]].copy()
+        del s, cs, cs_shift  # liberar memoria inmediatamente
 
     return df_daily, service_df, sim_runs, pd.DataFrame(kpi_seg).T, pd.DataFrame(kpi_exp).T
-
 
 # ---------------------------------------------------------------------
 # SIDEBAR (filtros y parámetros)
